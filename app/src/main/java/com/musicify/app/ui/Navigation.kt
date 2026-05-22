@@ -71,13 +71,13 @@ fun MusicifyNavHost() {
             )
         }
         else -> {
-            MainApp()
+            MainApp(onProfileClick = { showAuth = true })
         }
     }
 }
 
 @Composable
-fun MainApp() {
+fun MainApp(onProfileClick: () -> Unit = {}) {
     val navController = rememberNavController()
     val screens = listOf(Screen.Home, Screen.Search, Screen.Library, Screen.Settings)
 
@@ -124,7 +124,7 @@ fun MainApp() {
             startDestination = Screen.Home.route,
             modifier = Modifier.padding(paddingValues)
         ) {
-            composable(Screen.Home.route) { HomeScreen() }
+            composable(Screen.Home.route) { HomeScreen(onProfileClick = onProfileClick) }
             composable(Screen.Search.route) { SearchScreen() }
             composable(Screen.Library.route) { LibraryScreen() }
             composable(Screen.Settings.route) { SettingsScreen() }

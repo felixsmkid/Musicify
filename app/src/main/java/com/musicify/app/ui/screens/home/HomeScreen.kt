@@ -31,7 +31,7 @@ import coil.compose.AsyncImage
 import com.musicify.app.data.model.TrendingItem
 
 @Composable
-fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(viewModel: HomeViewModel = hiltViewModel(), onProfileClick: () -> Unit = {}) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
@@ -64,7 +64,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                     )
                 }
-                IconButton(onClick = { }) {
+                IconButton(onClick = onProfileClick) {
                     Icon(
                         Icons.Default.AccountCircle,
                         contentDescription = "Profile",
