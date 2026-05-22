@@ -1,6 +1,7 @@
 package com.musicify.app.player
 
 import android.content.Context
+import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -24,7 +25,8 @@ data class NowPlaying(
     val thumbnailUrl: String = "",
     val duration: Long = 0L,
     val isPlaying: Boolean = false,
-    val currentPosition: Long = 0L
+    val currentPosition: Long = 0L,
+    val error: String? = null
 )
 
 @Singleton
@@ -33,6 +35,7 @@ class PlayerManager @Inject constructor(
     private val repository: MusicRepository
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val tag = "PlayerManager"
 
     private val _nowPlaying = MutableStateFlow(NowPlaying())
     val nowPlaying: StateFlow<NowPlaying> = _nowPlaying.asStateFlow()
@@ -41,6 +44,15 @@ class PlayerManager @Inject constructor(
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private var player: ExoPlayer? = null
+
+    private val pipedInstances = listOf(
+        "https://pipedapi.kavin.rocks",
+        "https://pipedapi-libre.kavin.rocks",
+        "https://pipedapi.adminforge.de",
+        "https://api.piped.yt",
+        "https://pipedapi.r4fo.com",
+        "https://pipedapi.darkness.services"
+    )
 
     private fun getPlayer(): ExoPlayer {
         if (player == null) {
@@ -55,6 +67,15 @@ class PlayerManager @Inject constructor(
                             _nowPlaying.value = _nowPlaying.value.copy(isPlaying = false)
                         }
                     }
+
+                    override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                        Log.e(tag, "Playback error: ${error.message}")
+                        _nowPlaying.value = _nowPlaying.value.copy(
+                            isPlaying = false,
+                            error = "Playback failed: ${error.message}"
+                        )
+                        _isLoading.value = false
+                    }
                 })
             }
         }
@@ -68,31 +89,56 @@ class PlayerManager @Inject constructor(
             artist = artist,
             thumbnailUrl = thumbnailUrl,
             duration = durationSec * 1000,
-            isPlaying = false
+            isPlaying = false,
+            error = null
         )
         _isLoading.value = true
 
         scope.launch {
+            var streamUrl: String? = null
+
+            // Try InnerTube first
             repository.getStreamUrl(videoId)
-                .onSuccess { url ->
-                    val p = getPlayer()
-                    val mediaItem = MediaItem.Builder()
-                        .setUri(url)
-                        .setMediaMetadata(
-                            MediaMetadata.Builder()
-                                .setTitle(title)
-                                .setArtist(artist)
-                                .build()
-                        )
-                        .build()
-                    p.setMediaItem(mediaItem)
-                    p.prepare()
-                    p.play()
-                    _isLoading.value = false
+                .onSuccess { url -> streamUrl = url }
+                .onFailure { Log.w(tag, "InnerTube failed: ${it.message}") }
+
+            // Fallback: try Piped instances
+            if (streamUrl == null) {
+                for (instance in pipedInstances) {
+                    try {
+                        val result = repository.getStreamFromPiped(instance, videoId)
+                        result.onSuccess { url ->
+                            streamUrl = url
+                            return@onSuccess
+                        }
+                        if (streamUrl != null) break
+                    } catch (e: Exception) {
+                        Log.w(tag, "Piped $instance failed: ${e.message}")
+                    }
                 }
-                .onFailure {
-                    _isLoading.value = false
-                }
+            }
+
+            if (streamUrl != null) {
+                val p = getPlayer()
+                val mediaItem = MediaItem.Builder()
+                    .setUri(streamUrl)
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle(title)
+                            .setArtist(artist)
+                            .build()
+                    )
+                    .build()
+                p.setMediaItem(mediaItem)
+                p.prepare()
+                p.play()
+                _isLoading.value = false
+            } else {
+                _isLoading.value = false
+                _nowPlaying.value = _nowPlaying.value.copy(
+                    error = "Could not find audio stream. Try another song."
+                )
+            }
         }
     }
 

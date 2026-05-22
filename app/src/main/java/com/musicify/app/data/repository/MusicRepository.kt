@@ -1,11 +1,17 @@
 package com.musicify.app.data.repository
 
+import com.google.gson.Gson
+import com.google.gson.JsonObject
 import com.musicify.app.data.api.LrcLibApi
 import com.musicify.app.data.api.PipedApi
 import com.musicify.app.data.api.innertube.InnerTubeApi
 import com.musicify.app.data.api.innertube.InnerTubeClient
 import com.musicify.app.data.api.innertube.InnerTubeParser
 import com.musicify.app.data.model.*
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -13,7 +19,8 @@ import javax.inject.Singleton
 class MusicRepository @Inject constructor(
     private val innerTubeApi: InnerTubeApi,
     private val pipedApi: PipedApi,
-    private val lrcLibApi: LrcLibApi
+    private val lrcLibApi: LrcLibApi,
+    private val okHttpClient: OkHttpClient
 ) {
     private val trendingQueries = listOf(
         "top songs this week",
@@ -42,6 +49,33 @@ class MusicRepository @Inject constructor(
         val response = innerTubeApi.player(InnerTubeClient.playerRequest(videoId))
         InnerTubeParser.parseStreamUrl(response)
             ?: throw Exception("No audio stream available")
+    }
+
+    suspend fun getStreamFromPiped(instanceUrl: String, videoId: String): Result<String> = runCatching {
+        withContext(Dispatchers.IO) {
+            val url = "$instanceUrl/streams/$videoId"
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", "Musicify/0.3.0")
+                .build()
+
+            val response = okHttpClient.newCall(request).execute()
+            if (!response.isSuccessful) throw Exception("HTTP ${response.code}")
+
+            val body = response.body?.string() ?: throw Exception("Empty body")
+            val json = Gson().fromJson(body, JsonObject::class.java)
+
+            val audioStreams = json.getAsJsonArray("audioStreams")
+                ?: throw Exception("No audioStreams")
+
+            val best = audioStreams
+                .map { it.asJsonObject }
+                .filter { it.has("url") && it.get("url").asString.isNotEmpty() }
+                .maxByOrNull { it.get("bitrate")?.asInt ?: 0 }
+                ?: throw Exception("No valid audio stream")
+
+            best.get("url").asString
+        }
     }
 
     suspend fun getStream(videoId: String): Result<StreamData> = runCatching {
