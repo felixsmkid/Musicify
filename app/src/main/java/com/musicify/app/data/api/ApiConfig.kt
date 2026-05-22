@@ -9,5 +9,5 @@ object ApiConfig {
     )
     const val PIPED_BASE_URL = "https://pipedapi.kavin.rocks/"
     const val LRCLIB_BASE_URL = "https://lrclib.net/"
-    const val USER_AGENT = "Musicify/0.2.0 (https://github.com/felixsmkid/Musicify)"
+    const val USER_AGENT = "Musicify/0.3.0 (https://github.com/felixsmkid/Musicify)"
 }

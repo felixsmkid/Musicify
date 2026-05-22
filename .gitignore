@@ -36,3 +36,5 @@ Thumbs.db
 # Secrets
 *.env
 .env.local
+*.log
+.kotlin/
