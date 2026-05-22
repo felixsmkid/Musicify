@@ -6,6 +6,24 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Se
 
 ---
 
+## [v0.2.0-beta] — 2024-01-02
+
+### 🔧 Bug Fixing — BETA 0.2
+
+**Fix:** APK tidak bisa di-install ("package appears to be invalid")
+
+### 🐛 Fixed
+- **APK Signing** — APK sekarang sudah di-sign dengan release keystore, sehingga bisa di-install langsung tanpa error "package appears to be invalid"
+- **APK Size** — Disabled R8 minification yang menyebabkan APK terlalu kecil (2MB) dan corrupt. APK sekarang full-size (~22MB) dengan semua resources intact
+- **Release Tag** — Release sekarang muncul sebagai "Latest" bukan "Pre-release"
+
+### ⚙️ Changed
+- Disabled `isMinifyEnabled` dan `isShrinkResources` pada release build (akan di-enable kembali setelah ProGuard rules proper)
+- Added signing config untuk release build
+- Version bump ke `0.2.0-beta` (versionCode 2)
+
+---
+
 ## [v0.1.0-beta] — 2024-01-01
 
 ### 🎉 BETA 0.1 — Initial Beta Release
@@ -47,10 +65,11 @@ First public beta of Musicify! A completely free, ad-free music streaming app fo
 - ⚙️ GitHub Actions CI/CD (build, lint, test, release)
 
 ### ⚠️ Known Issues
+- ~~APK unsigned — tidak bisa di-install~~ (Fixed in v0.2.0-beta)
+- ~~APK terlalu kecil karena aggressive minification~~ (Fixed in v0.2.0-beta)
 - Playlist sync not yet available
 - Some tracks may not have synced lyrics
 - Download/offline feature coming in next release
-- Release APK is unsigned (install from unknown sources required)
 
 ---
 
@@ -72,4 +91,4 @@ First public beta of Musicify! A completely free, ad-free music streaming app fo
 - [ ] Equalizer UI
 - [ ] Artist & album detail pages
 - [ ] Sleep timer with fade out
-- [ ] Signed APK release
+- [ ] Proper ProGuard rules for smaller APK
