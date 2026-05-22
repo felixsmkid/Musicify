@@ -44,9 +44,23 @@ object AppModule {
     @Singleton
     @Named("innertube")
     fun provideInnerTubeRetrofit(client: OkHttpClient): Retrofit {
+        val innerTubeClient = client.newBuilder()
+            .addInterceptor { chain ->
+                val original = chain.request()
+                val isPlayerRequest = original.url.encodedPath.contains("player")
+                val builder = original.newBuilder()
+                if (isPlayerRequest) {
+                    builder.header("User-Agent", "com.google.android.apps.youtube.music/7.27.52 (Linux; U; Android 14; en_US) gzip")
+                    builder.header("X-YouTube-Client-Name", "21")
+                    builder.header("X-YouTube-Client-Version", "7.27.52")
+                }
+                chain.proceed(builder.build())
+            }
+            .build()
+
         return Retrofit.Builder()
             .baseUrl("https://music.youtube.com/youtubei/v1/")
-            .client(client)
+            .client(innerTubeClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }

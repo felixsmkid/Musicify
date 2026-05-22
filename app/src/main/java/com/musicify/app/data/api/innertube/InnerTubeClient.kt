@@ -35,12 +35,25 @@ object InnerTubeClient {
                 add("client", JsonObject().apply {
                     addProperty("clientName", "ANDROID_MUSIC")
                     addProperty("clientVersion", "7.27.52")
-                    addProperty("androidSdkVersion", 30)
+                    addProperty("androidSdkVersion", 34)
+                    addProperty("osName", "Android")
+                    addProperty("osVersion", "14")
+                    addProperty("platform", "MOBILE")
                     addProperty("hl", "en")
                     addProperty("gl", "US")
                 })
+                add("user", JsonObject().apply {
+                    addProperty("lockedSafetyMode", false)
+                })
             })
             addProperty("videoId", videoId)
+            addProperty("racyCheckOk", true)
+            addProperty("contentCheckOk", true)
+            add("playbackContext", JsonObject().apply {
+                add("contentPlaybackContext", JsonObject().apply {
+                    addProperty("signatureTimestamp", 20073)
+                })
+            })
         }
     }
 

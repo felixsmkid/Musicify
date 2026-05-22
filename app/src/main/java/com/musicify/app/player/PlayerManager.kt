@@ -2,6 +2,7 @@ package com.musicify.app.player
 
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -50,8 +51,7 @@ class PlayerManager @Inject constructor(
         "https://pipedapi-libre.kavin.rocks",
         "https://pipedapi.adminforge.de",
         "https://api.piped.yt",
-        "https://pipedapi.r4fo.com",
-        "https://pipedapi.darkness.services"
+        "https://pipedapi.r4fo.com"
     )
 
     private fun getPlayer(): ExoPlayer {
@@ -72,9 +72,12 @@ class PlayerManager @Inject constructor(
                         Log.e(tag, "Playback error: ${error.message}")
                         _nowPlaying.value = _nowPlaying.value.copy(
                             isPlaying = false,
-                            error = "Playback failed: ${error.message}"
+                            error = "Playback error"
                         )
                         _isLoading.value = false
+                        scope.launch(Dispatchers.Main) {
+                            Toast.makeText(context, "Playback failed, trying next source...", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 })
             }
@@ -97,47 +100,62 @@ class PlayerManager @Inject constructor(
         scope.launch {
             var streamUrl: String? = null
 
-            // Try InnerTube first
+            // Try 1: InnerTube ANDROID_MUSIC client
+            Log.d(tag, "Trying InnerTube for $videoId")
             repository.getStreamUrl(videoId)
-                .onSuccess { url -> streamUrl = url }
-                .onFailure { Log.w(tag, "InnerTube failed: ${it.message}") }
+                .onSuccess { url ->
+                    Log.d(tag, "InnerTube success: ${url.take(50)}")
+                    streamUrl = url
+                }
+                .onFailure { e ->
+                    Log.w(tag, "InnerTube failed: ${e.message}")
+                }
 
-            // Fallback: try Piped instances
+            // Try 2: Piped instances
             if (streamUrl == null) {
                 for (instance in pipedInstances) {
-                    try {
-                        val result = repository.getStreamFromPiped(instance, videoId)
-                        result.onSuccess { url ->
+                    Log.d(tag, "Trying Piped: $instance")
+                    repository.getStreamFromPiped(instance, videoId)
+                        .onSuccess { url ->
+                            Log.d(tag, "Piped success from $instance")
                             streamUrl = url
-                            return@onSuccess
                         }
-                        if (streamUrl != null) break
-                    } catch (e: Exception) {
-                        Log.w(tag, "Piped $instance failed: ${e.message}")
-                    }
+                        .onFailure { e ->
+                            Log.w(tag, "Piped $instance failed: ${e.message}")
+                        }
+                    if (streamUrl != null) break
                 }
             }
 
+            // Play or show error
             if (streamUrl != null) {
-                val p = getPlayer()
-                val mediaItem = MediaItem.Builder()
-                    .setUri(streamUrl)
-                    .setMediaMetadata(
-                        MediaMetadata.Builder()
-                            .setTitle(title)
-                            .setArtist(artist)
-                            .build()
-                    )
-                    .build()
-                p.setMediaItem(mediaItem)
-                p.prepare()
-                p.play()
+                try {
+                    val p = getPlayer()
+                    val mediaItem = MediaItem.Builder()
+                        .setUri(streamUrl)
+                        .setMediaMetadata(
+                            MediaMetadata.Builder()
+                                .setTitle(title)
+                                .setArtist(artist)
+                                .build()
+                        )
+                        .build()
+                    p.setMediaItem(mediaItem)
+                    p.prepare()
+                    p.play()
+                } catch (e: Exception) {
+                    Log.e(tag, "Player error: ${e.message}")
+                    _nowPlaying.value = _nowPlaying.value.copy(error = "Failed to play")
+                }
                 _isLoading.value = false
             } else {
                 _isLoading.value = false
                 _nowPlaying.value = _nowPlaying.value.copy(
-                    error = "Could not find audio stream. Try another song."
+                    error = "No stream available"
                 )
+                scope.launch(Dispatchers.Main) {
+                    Toast.makeText(context, "Could not load audio. Try another song.", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
