@@ -8,11 +8,15 @@ import com.musicify.app.data.model.TrendingItem
 object InnerTubeParser {
 
     fun parseCharts(response: JsonObject): List<TrendingItem> {
+        return parseSearchAsTrending(response)
+    }
+
+    fun parseSearchAsTrending(response: JsonObject): List<TrendingItem> {
         val items = mutableListOf<TrendingItem>()
         try {
             val contents = response
                 .getAsJsonObject("contents")
-                ?.getAsJsonObject("singleColumnBrowseResultsRenderer")
+                ?.getAsJsonObject("tabbedSearchResultsRenderer")
                 ?.getAsJsonArray("tabs")
                 ?.get(0)?.asJsonObject
                 ?.getAsJsonObject("tabRenderer")
@@ -21,36 +25,45 @@ object InnerTubeParser {
                 ?.getAsJsonArray("contents")
 
             contents?.forEach { section ->
-                val musicShelf = section.asJsonObject
-                    ?.getAsJsonObject("musicCarouselShelfRenderer")
-                    ?: section.asJsonObject?.getAsJsonObject("musicShelfRenderer")
-
-                musicShelf?.getAsJsonArray("contents")?.forEach { item ->
-                    parseChartItem(item)?.let { items.add(it) }
+                val shelf = section.asJsonObject?.getAsJsonObject("musicShelfRenderer")
+                shelf?.getAsJsonArray("contents")?.forEach { item ->
+                    parseTrendingFromSearch(item)?.let { items.add(it) }
                 }
             }
         } catch (_: Exception) {}
         return items
     }
 
-    private fun parseChartItem(item: JsonElement): TrendingItem? {
+    private fun parseTrendingFromSearch(item: JsonElement): TrendingItem? {
         return try {
             val renderer = item.asJsonObject
-                ?.getAsJsonObject("musicResponsiveListItemRenderer")
-                ?: item.asJsonObject?.getAsJsonObject("musicTwoRowItemRenderer")
+                ?.getAsJsonObject("musicResponsiveListItemRenderer") ?: return null
 
-            if (renderer == null) return null
+            val cols = renderer.getAsJsonArray("flexColumns")
+            val title = cols?.get(0)?.asJsonObject
+                ?.getAsJsonObject("musicResponsiveListItemFlexColumnRenderer")
+                ?.getAsJsonObject("text")
+                ?.getAsJsonArray("runs")
+                ?.get(0)?.asJsonObject
+                ?.get("text")?.asString ?: return null
 
-            val title = extractText(renderer, "flexColumns", 0)
-                ?: extractText(renderer, "title")
+            val artistRuns = cols?.get(1)?.asJsonObject
+                ?.getAsJsonObject("musicResponsiveListItemFlexColumnRenderer")
+                ?.getAsJsonObject("text")
+                ?.getAsJsonArray("runs")
+            val artist = artistRuns?.joinToString("") { it.asJsonObject.get("text")?.asString ?: "" } ?: ""
+
+            val videoId = renderer.getAsJsonObject("playlistItemData")
+                ?.get("videoId")?.asString
+                ?: extractVideoIdFromOverlay(renderer)
                 ?: return null
 
-            val artist = extractText(renderer, "flexColumns", 1)
-                ?: extractText(renderer, "subtitle")
-                ?: ""
-
-            val videoId = extractVideoId(renderer) ?: return null
-            val thumbnail = extractThumbnail(renderer)
+            val thumbnail = renderer.getAsJsonObject("thumbnail")
+                ?.getAsJsonObject("musicThumbnailRenderer")
+                ?.getAsJsonObject("thumbnail")
+                ?.getAsJsonArray("thumbnails")
+                ?.lastOrNull()?.asJsonObject
+                ?.get("url")?.asString ?: ""
 
             TrendingItem(
                 url = "/watch?v=$videoId",
@@ -82,9 +95,7 @@ object InnerTubeParser {
                 ?.getAsJsonArray("contents")
 
             contents?.forEach { section ->
-                val shelf = section.asJsonObject
-                    ?.getAsJsonObject("musicShelfRenderer")
-
+                val shelf = section.asJsonObject?.getAsJsonObject("musicShelfRenderer")
                 shelf?.getAsJsonArray("contents")?.forEach { item ->
                     parseSearchItem(item)?.let { items.add(it) }
                 }
@@ -96,13 +107,33 @@ object InnerTubeParser {
     private fun parseSearchItem(item: JsonElement): SearchItem? {
         return try {
             val renderer = item.asJsonObject
-                ?.getAsJsonObject("musicResponsiveListItemRenderer")
+                ?.getAsJsonObject("musicResponsiveListItemRenderer") ?: return null
+
+            val cols = renderer.getAsJsonArray("flexColumns")
+            val title = cols?.get(0)?.asJsonObject
+                ?.getAsJsonObject("musicResponsiveListItemFlexColumnRenderer")
+                ?.getAsJsonObject("text")
+                ?.getAsJsonArray("runs")
+                ?.get(0)?.asJsonObject
+                ?.get("text")?.asString ?: return null
+
+            val artistRuns = cols?.get(1)?.asJsonObject
+                ?.getAsJsonObject("musicResponsiveListItemFlexColumnRenderer")
+                ?.getAsJsonObject("text")
+                ?.getAsJsonArray("runs")
+            val artist = artistRuns?.joinToString("") { it.asJsonObject.get("text")?.asString ?: "" } ?: ""
+
+            val videoId = renderer.getAsJsonObject("playlistItemData")
+                ?.get("videoId")?.asString
+                ?: extractVideoIdFromOverlay(renderer)
                 ?: return null
 
-            val title = extractText(renderer, "flexColumns", 0) ?: return null
-            val artist = extractText(renderer, "flexColumns", 1) ?: ""
-            val videoId = extractVideoId(renderer) ?: return null
-            val thumbnail = extractThumbnail(renderer)
+            val thumbnail = renderer.getAsJsonObject("thumbnail")
+                ?.getAsJsonObject("musicThumbnailRenderer")
+                ?.getAsJsonObject("thumbnail")
+                ?.getAsJsonArray("thumbnails")
+                ?.lastOrNull()?.asJsonObject
+                ?.get("url")?.asString ?: ""
 
             SearchItem(
                 url = "/watch?v=$videoId",
@@ -119,6 +150,20 @@ object InnerTubeParser {
         }
     }
 
+    private fun extractVideoIdFromOverlay(renderer: JsonObject): String? {
+        return try {
+            renderer.getAsJsonObject("overlay")
+                ?.getAsJsonObject("musicItemThumbnailOverlayRenderer")
+                ?.getAsJsonObject("content")
+                ?.getAsJsonObject("musicPlayButtonRenderer")
+                ?.getAsJsonObject("playNavigationEndpoint")
+                ?.getAsJsonObject("watchEndpoint")
+                ?.get("videoId")?.asString
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     fun parseStreamUrl(response: JsonObject): String? {
         return try {
             val formats = response.getAsJsonObject("streamingData")
@@ -130,63 +175,6 @@ object InnerTubeParser {
                 ?.get("url")?.asString
         } catch (_: Exception) {
             null
-        }
-    }
-
-    private fun extractText(renderer: JsonObject, key: String, index: Int = -1): String? {
-        return try {
-            if (key == "flexColumns" && index >= 0) {
-                renderer.getAsJsonArray("flexColumns")
-                    ?.get(index)?.asJsonObject
-                    ?.getAsJsonObject("musicResponsiveListItemFlexColumnRenderer")
-                    ?.getAsJsonObject("text")
-                    ?.getAsJsonArray("runs")
-                    ?.get(0)?.asJsonObject
-                    ?.get("text")?.asString
-            } else {
-                renderer.getAsJsonObject(key)
-                    ?.getAsJsonArray("runs")
-                    ?.get(0)?.asJsonObject
-                    ?.get("text")?.asString
-            }
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    private fun extractVideoId(renderer: JsonObject): String? {
-        return try {
-            renderer.getAsJsonObject("overlay")
-                ?.getAsJsonObject("musicItemThumbnailOverlayRenderer")
-                ?.getAsJsonObject("content")
-                ?.getAsJsonObject("musicPlayButtonRenderer")
-                ?.getAsJsonObject("playNavigationEndpoint")
-                ?.getAsJsonObject("watchEndpoint")
-                ?.get("videoId")?.asString
-                ?: renderer.getAsJsonObject("navigationEndpoint")
-                    ?.getAsJsonObject("watchEndpoint")
-                    ?.get("videoId")?.asString
-                ?: renderer.getAsJsonObject("playlistItemData")
-                    ?.get("videoId")?.asString
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    private fun extractThumbnail(renderer: JsonObject): String {
-        return try {
-            val thumbnails = renderer.getAsJsonObject("thumbnail")
-                ?.getAsJsonObject("musicThumbnailRenderer")
-                ?.getAsJsonObject("thumbnail")
-                ?.getAsJsonArray("thumbnails")
-                ?: renderer.getAsJsonObject("thumbnailRenderer")
-                    ?.getAsJsonObject("musicThumbnailRenderer")
-                    ?.getAsJsonObject("thumbnail")
-                    ?.getAsJsonArray("thumbnails")
-
-            thumbnails?.lastOrNull()?.asJsonObject?.get("url")?.asString ?: ""
-        } catch (_: Exception) {
-            ""
         }
     }
 }

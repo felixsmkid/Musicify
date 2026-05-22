@@ -33,24 +33,24 @@ class HomeViewModel @Inject constructor(
     fun loadTrending() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            repository.getTrending()
+            repository.searchTrending()
                 .onSuccess { items ->
                     _uiState.value = _uiState.value.copy(
-                        trending = items.filter { it.type == "stream" },
+                        trending = items,
                         isLoading = false
                     )
                 }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = e.message ?: "Failed to load"
+                        error = e.message ?: "Connection failed"
                     )
                 }
         }
     }
 
     fun playTrack(item: TrendingItem) {
-        // Connected to player later
+        // Will connect to player
     }
 
     fun getGreeting(): String {

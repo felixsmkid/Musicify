@@ -1,6 +1,5 @@
 package com.musicify.app.ui
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -16,18 +15,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.musicify.app.ui.screens.auth.AuthScreen
 import com.musicify.app.ui.screens.home.HomeScreen
 import com.musicify.app.ui.screens.library.LibraryScreen
-import com.musicify.app.ui.screens.onboarding.OnboardingScreen
-import com.musicify.app.ui.screens.onboarding.WelcomeViewModel
 import com.musicify.app.ui.screens.search.SearchScreen
 import com.musicify.app.ui.screens.settings.SettingsScreen
 
@@ -45,29 +40,7 @@ sealed class Screen(
 
 @Composable
 fun MusicifyNavHost() {
-    val welcomeViewModel: WelcomeViewModel = hiltViewModel()
-    val showOnboarding by welcomeViewModel.showOnboarding.collectAsState()
-    var showAuth by remember { mutableStateOf(false) }
-
-    when {
-        showOnboarding -> {
-            OnboardingScreen(
-                onComplete = {
-                    welcomeViewModel.completeOnboarding()
-                    showAuth = true
-                }
-            )
-        }
-        showAuth -> {
-            AuthScreen(
-                onSignIn = { showAuth = false },
-                onSkip = { showAuth = false }
-            )
-        }
-        else -> {
-            MainApp()
-        }
-    }
+    MainApp()
 }
 
 @Composable
