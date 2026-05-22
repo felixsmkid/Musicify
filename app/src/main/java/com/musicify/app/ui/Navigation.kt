@@ -12,6 +12,7 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -22,6 +23,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.musicify.app.player.PlayerManager
+import com.musicify.app.ui.components.MiniPlayer
 import com.musicify.app.ui.screens.auth.AuthScreen
 import com.musicify.app.ui.screens.home.HomeScreen
 import com.musicify.app.ui.screens.library.LibraryScreen
@@ -43,7 +46,7 @@ sealed class Screen(
 }
 
 @Composable
-fun MusicifyNavHost() {
+fun MusicifyNavHost(playerManager: PlayerManager) {
     val welcomeViewModel: WelcomeViewModel = hiltViewModel()
     val showOnboarding by welcomeViewModel.showOnboarding.collectAsState()
     var showAuth by remember { mutableStateOf(false) }
@@ -71,50 +74,59 @@ fun MusicifyNavHost() {
             )
         }
         else -> {
-            MainApp(onProfileClick = { showAuth = true })
+            MainApp(playerManager = playerManager, onProfileClick = { showAuth = true })
         }
     }
 }
 
 @Composable
-fun MainApp(onProfileClick: () -> Unit = {}) {
+fun MainApp(playerManager: PlayerManager, onProfileClick: () -> Unit = {}) {
     val navController = rememberNavController()
     val screens = listOf(Screen.Home, Screen.Search, Screen.Library, Screen.Settings)
+    val nowPlaying by playerManager.nowPlaying.collectAsState()
+    val isLoading by playerManager.isLoading.collectAsState()
 
     Scaffold(
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp
-            ) {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentDestination = navBackStackEntry?.destination
+            Column {
+                MiniPlayer(
+                    nowPlaying = nowPlaying,
+                    isLoading = isLoading,
+                    onPlayPause = { playerManager.togglePlayPause() }
+                )
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 0.dp
+                ) {
+                    val navBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentDestination = navBackStackEntry?.destination
 
-                screens.forEach { screen ->
-                    val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                imageVector = if (selected) screen.selectedIcon else screen.unselectedIcon,
-                                contentDescription = screen.title
-                            )
-                        },
-                        label = { Text(screen.title, style = MaterialTheme.typography.labelSmall) },
-                        selected = selected,
-                        onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                    screens.forEach { screen ->
+                        val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
+                        NavigationBarItem(
+                            icon = {
+                                Icon(
+                                    imageVector = if (selected) screen.selectedIcon else screen.unselectedIcon,
+                                    contentDescription = screen.title
+                                )
+                            },
+                            label = { Text(screen.title, style = MaterialTheme.typography.labelSmall) },
+                            selected = selected,
+                            onClick = {
+                                navController.navigate(screen.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
@@ -124,8 +136,8 @@ fun MainApp(onProfileClick: () -> Unit = {}) {
             startDestination = Screen.Home.route,
             modifier = Modifier.padding(paddingValues)
         ) {
-            composable(Screen.Home.route) { HomeScreen(onProfileClick = onProfileClick) }
-            composable(Screen.Search.route) { SearchScreen() }
+            composable(Screen.Home.route) { HomeScreen(playerManager = playerManager, onProfileClick = onProfileClick) }
+            composable(Screen.Search.route) { SearchScreen(playerManager = playerManager) }
             composable(Screen.Library.route) { LibraryScreen() }
             composable(Screen.Settings.route) { SettingsScreen() }
         }

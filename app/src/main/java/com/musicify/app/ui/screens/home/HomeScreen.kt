@@ -1,6 +1,5 @@
 package com.musicify.app.ui.screens.home
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -21,7 +20,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -29,11 +27,11 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.musicify.app.data.model.TrendingItem
+import com.musicify.app.player.PlayerManager
 
 @Composable
-fun HomeScreen(viewModel: HomeViewModel = hiltViewModel(), onProfileClick: () -> Unit = {}) {
+fun HomeScreen(viewModel: HomeViewModel = hiltViewModel(), playerManager: PlayerManager? = null, onProfileClick: () -> Unit = {}) {
     val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
 
     LazyColumn(
         modifier = Modifier
@@ -157,7 +155,13 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel(), onProfileClick: () ->
                         FeaturedCard(
                             song = song,
                             onClick = {
-                                Toast.makeText(context, "\u25B6 ${song.title}", Toast.LENGTH_SHORT).show()
+                                playerManager?.play(
+                                    videoId = song.url.removePrefix("/watch?v="),
+                                    title = song.title,
+                                    artist = song.uploaderName,
+                                    thumbnailUrl = song.thumbnail,
+                                    durationSec = song.duration
+                                )
                             }
                         )
                     }
@@ -181,7 +185,13 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel(), onProfileClick: () ->
                 SongRow(
                     song = song,
                     onClick = {
-                        Toast.makeText(context, "\u25B6 ${song.title}", Toast.LENGTH_SHORT).show()
+                        playerManager?.play(
+                            videoId = song.url.removePrefix("/watch?v="),
+                            title = song.title,
+                            artist = song.uploaderName,
+                            thumbnailUrl = song.thumbnail,
+                            durationSec = song.duration
+                        )
                     }
                 )
             }

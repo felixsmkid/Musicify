@@ -1,6 +1,5 @@
 package com.musicify.app.ui.screens.search
 
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -26,11 +24,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.musicify.app.player.PlayerManager
 
 @Composable
-fun SearchScreen(viewModel: SearchViewModel = hiltViewModel()) {
+fun SearchScreen(viewModel: SearchViewModel = hiltViewModel(), playerManager: PlayerManager? = null) {
     val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
     val focusManager = LocalFocusManager.current
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -119,7 +117,13 @@ fun SearchScreen(viewModel: SearchViewModel = hiltViewModel()) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    Toast.makeText(context, "▶ ${item.title}", Toast.LENGTH_SHORT).show()
+                                    playerManager?.play(
+                                        videoId = item.url.removePrefix("/watch?v="),
+                                        title = item.title,
+                                        artist = item.uploaderName,
+                                        thumbnailUrl = item.thumbnail,
+                                        durationSec = item.duration
+                                    )
                                 }
                                 .padding(horizontal = 20.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically
