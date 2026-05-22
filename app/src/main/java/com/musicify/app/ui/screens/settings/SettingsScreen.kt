@@ -170,7 +170,7 @@ fun SettingsScreen() {
             SettingsItem(
                 icon = Icons.Outlined.Info,
                 title = "Version",
-                subtitle = "0.3.0-beta (build 3)",
+                subtitle = "1.0.0 (build 10)",
                 onClick = {}
             )
         }

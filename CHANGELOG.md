@@ -1,77 +1,74 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://www.conventionalcommits.org/) for commit guidelines.
+
+---
+
+## [1.0.0] - 2024-01-10
+
+### Release — v1.0.0 Stable
+
+First stable release of Musicify.
+
+### Playback Engine
+- Rewrote audio streaming pipeline: InnerTube ANDROID_MUSIC client with proper device headers (User-Agent, X-YouTube-Client-Name, X-YouTube-Client-Version) for authenticated-like requests from real Android devices
+- Multi-source fallback: InnerTube → 5 Piped instances (sequential retry)
+- ExoPlayer with MediaSession for background playback and notification controls
+- Error handling with user-visible Toast on stream failure
+
+### UI/UX
+- Home screen: Spotify-style layout with profile icon, Featured horizontal cards with gradient overlay, Trending Songs vertical list with duration
+- Search: debounced input with Song/Video type detection, clickable results that trigger playback
+- Library: gradient cards (Liked Songs, Recently Played, Downloads), playlist section
+- Settings: grouped sections (Audio, Appearance, Lyrics, About) with Google account card at top
+- Mini Player: persistent bottom bar showing now-playing with album art, play/pause toggle
+- Onboarding: 3-page welcome flow on first install only (SharedPreferences persistence)
+
+### Google Sign-In
+- Credential Manager integration with WEB_CLIENT_ID
+- Profile shown in Settings after successful auth
+- Error displayed inline if auth fails
+
+### Technical
+- InnerTube search with songs filter for reliable results with videoId + duration
+- Parser extracts duration from flexColumn runs, play count from flexCol 2
+- Hilt DI with proper OkHttp interceptor chain for YouTube headers
+- Version: 1.0.0, versionCode 10
+
+### Known Limitations
+- Playback depends on YouTube's ANDROID_MUSIC client accepting requests from device
+- If all stream sources fail, a Toast is shown and user should try another song
+- Google Sign-In requires properly configured OAuth consent screen (published, not testing)
+- Lyrics feature (LRCLIB) ready in code but full UI not yet connected
 
 ---
 
 ## [0.3.0-beta] - 2024-01-03
 
-### New Features
-
-- **innertube-backend**: replaced unreliable Piped API proxy with direct InnerTube calls to `music.youtube.com/youtubei/v1/` — this resolves persistent loading failures caused by community Piped instances being offline (HTTP 526/502)
-- **google-auth**: fully integrated Google Sign-In using Credential Manager + `GetGoogleIdOption`; on successful auth the app receives `displayName`, `email`, and `profilePictureUri` from the Google ID token
-- **home-feed**: home screen now fetches trending tracks via InnerTube search endpoint with curated query, ensuring results always contain playable items with thumbnails and metadata
-- **credential-obfuscation**: WEB_CLIENT_ID stored Base64-encoded in `ServiceRegistry` to avoid plain-text exposure in public repository
+### Features
+- InnerTube backend replacing Piped API
+- Google Sign-In via Credential Manager
+- Home feed via InnerTube search
+- Multi-source stream fallback
 
 ### Bug Fixes
-
-- **home-blank**: fixed home screen showing empty state — root cause was InnerTube charts endpoint returning playlist references (browseEndpoint) instead of directly playable videoIds; switched to search-based feed
-- **onboarding-popup**: removed onboarding/auth flow from main navigation that was triggering on every app launch (state was never persisted to DataStore); app now launches directly to main screen
-- **parser**: fixed `InnerTubeParser` not extracting `videoId` — added `playlistItemData` field extraction and artist text concatenation from multiple `runs`
-
-### Changes
-
-- version bump to `0.3.0-beta` (versionCode 3)
-- added `androidx.credentials:credentials:1.3.0` and `googleid:1.1.1` dependencies
-- `MusicRepository.searchTrending()` uses InnerTube search with fallback query if primary returns empty
-- `InnerTubeClient` uses `ANDROID_MUSIC` client context for player requests (required for audio stream URLs)
+- Home screen blank (charts endpoint returning playlists)
+- Onboarding popup on every launch
+- InnerTube parser videoId extraction
 
 ---
 
 ## [0.2.0-beta] - 2024-01-02
 
 ### Bug Fixes
-
-- **signing**: APK signed with release keystore; resolves `INSTALL_PARSE_FAILED_NO_CERTIFICATES`
-- **build**: disabled R8 minification that produced corrupt 2MB APK
-- **api**: added multi-instance fallback list for Piped API
-
-### Features
-
-- onboarding: 3-page swipeable welcome flow (HorizontalPager)
-- auth: Google Sign-In UI scaffold
-- home: redesigned with gradient header, trending carousel, quick picks list
-- error-state: retry button on API failure
-
-### Changes
-
-- signing config added to release build
-- version bump to 0.2.0-beta (versionCode 2)
-- minification disabled pending ProGuard rule audit
-
-### Known Issues (fixed in 0.3.0)
-
-- ~~home screen blank due to Piped API downtime~~
-- ~~onboarding popup appearing on every launch~~
-- ~~Google Sign-In non-functional without WEB_CLIENT_ID~~
+- APK signing (INSTALL_PARSE_FAILED_NO_CERTIFICATES)
+- R8 minification producing 2MB corrupt APK
 
 ---
 
 ## [0.1.0-beta] - 2024-01-01
 
 ### Initial Release
-
-Core streaming architecture with Piped API backend and LRCLIB lyrics integration.
-
-- stream audio via Piped API (YouTube Music proxy)
-- real-time synced lyrics from LRCLIB
-- Material 3 UI with Jetpack Compose
-- Media3 ExoPlayer with foreground service
-- search, trending, library, settings screens
+- Core streaming architecture
+- Material 3 UI, Media3 ExoPlayer, Hilt DI
 - GitHub Actions CI/CD
-
-### Known Issues (fixed in 0.2.0)
-
-- ~~APK unsigned — install failure~~
-- ~~R8 produces 2MB corrupt APK~~
