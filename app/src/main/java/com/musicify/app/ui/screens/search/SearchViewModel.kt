@@ -17,6 +17,7 @@ data class SearchUiState(
     val query: String = "",
     val results: List<SearchItem> = emptyList(),
     val isLoading: Boolean = false,
+    val hasSearched: Boolean = false,
     val error: String? = null
 )
 
@@ -34,9 +35,11 @@ class SearchViewModel @Inject constructor(
         searchJob?.cancel()
         if (query.length >= 2) {
             searchJob = viewModelScope.launch {
-                delay(500)
+                delay(400)
                 search()
             }
+        } else if (query.isEmpty()) {
+            _uiState.value = _uiState.value.copy(results = emptyList(), hasSearched = false)
         }
     }
 
@@ -50,19 +53,22 @@ class SearchViewModel @Inject constructor(
                 .onSuccess { result ->
                     _uiState.value = _uiState.value.copy(
                         results = result.items,
-                        isLoading = false
+                        isLoading = false,
+                        hasSearched = true
                     )
                 }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
+                        hasSearched = true,
                         error = e.message
                     )
                 }
         }
     }
 
-    fun playTrack(item: SearchItem) {
-        // Will be connected to player service
+    fun onTrackClick(item: SearchItem): String {
+        val videoId = item.url.removePrefix("/watch?v=")
+        return videoId
     }
 }
