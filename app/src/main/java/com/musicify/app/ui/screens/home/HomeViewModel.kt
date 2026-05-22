@@ -30,33 +30,34 @@ class HomeViewModel @Inject constructor(
         loadTrending()
     }
 
-    private fun loadTrending() {
+    fun loadTrending() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             repository.getTrending()
                 .onSuccess { items ->
                     _uiState.value = _uiState.value.copy(
-                        trending = items,
+                        trending = items.filter { it.type == "stream" },
                         isLoading = false
                     )
                 }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = "Failed to load trending: ${e.message}"
+                        error = e.message ?: "Failed to load"
                     )
                 }
         }
     }
 
     fun playTrack(item: TrendingItem) {
-        // Will be connected to player service
+        // Connected to player later
     }
 
     fun getGreeting(): String {
         return when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
-            in 0..11 -> "Morning"
-            in 12..17 -> "Afternoon"
+            in 0..4 -> "Night"
+            in 5..11 -> "Morning"
+            in 12..16 -> "Afternoon"
             else -> "Evening"
         }
     }
