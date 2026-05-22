@@ -3,6 +3,7 @@ package com.musicify.app.data.di
 import com.musicify.app.data.api.ApiConfig
 import com.musicify.app.data.api.LrcLibApi
 import com.musicify.app.data.api.PipedApi
+import com.musicify.app.data.api.innertube.InnerTubeApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -41,6 +42,17 @@ object AppModule {
 
     @Provides
     @Singleton
+    @Named("innertube")
+    fun provideInnerTubeRetrofit(client: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://music.youtube.com/youtubei/v1/")
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    @Provides
+    @Singleton
     @Named("piped")
     fun providePipedRetrofit(client: OkHttpClient): Retrofit {
         return Retrofit.Builder()
@@ -59,6 +71,12 @@ object AppModule {
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideInnerTubeApi(@Named("innertube") retrofit: Retrofit): InnerTubeApi {
+        return retrofit.create(InnerTubeApi::class.java)
     }
 
     @Provides

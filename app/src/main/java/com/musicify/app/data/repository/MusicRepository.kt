@@ -2,25 +2,38 @@ package com.musicify.app.data.repository
 
 import com.musicify.app.data.api.LrcLibApi
 import com.musicify.app.data.api.PipedApi
+import com.musicify.app.data.api.innertube.InnerTubeApi
+import com.musicify.app.data.api.innertube.InnerTubeClient
+import com.musicify.app.data.api.innertube.InnerTubeParser
 import com.musicify.app.data.model.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class MusicRepository @Inject constructor(
+    private val innerTubeApi: InnerTubeApi,
     private val pipedApi: PipedApi,
     private val lrcLibApi: LrcLibApi
 ) {
+    suspend fun getTrending(): Result<List<TrendingItem>> = runCatching {
+        val response = innerTubeApi.browse(InnerTubeClient.browseChartsRequest())
+        InnerTubeParser.parseCharts(response)
+    }
+
     suspend fun search(query: String): Result<SearchResult> = runCatching {
-        pipedApi.search(query)
+        val response = innerTubeApi.search(InnerTubeClient.searchRequest(query))
+        val items = InnerTubeParser.parseSearch(response)
+        SearchResult(items = items)
+    }
+
+    suspend fun getStreamUrl(videoId: String): Result<String> = runCatching {
+        val response = innerTubeApi.player(InnerTubeClient.playerRequest(videoId))
+        InnerTubeParser.parseStreamUrl(response)
+            ?: throw Exception("No audio stream available")
     }
 
     suspend fun getStream(videoId: String): Result<StreamData> = runCatching {
         pipedApi.getStream(videoId)
-    }
-
-    suspend fun getTrending(): Result<List<TrendingItem>> = runCatching {
-        pipedApi.getTrending()
     }
 
     suspend fun getLyrics(trackName: String, artistName: String, duration: Int = 0): Result<LyricsResult> = runCatching {
@@ -29,17 +42,6 @@ class MusicRepository @Inject constructor(
 
     suspend fun searchLyrics(query: String): Result<List<LyricsResult>> = runCatching {
         lrcLibApi.searchLyrics(query = query)
-    }
-
-    suspend fun getPlaylist(playlistId: String): Result<PlaylistData> = runCatching {
-        pipedApi.getPlaylist(playlistId)
-    }
-
-    fun getAudioStreamUrl(streamData: StreamData): String? {
-        return streamData.audioStreams
-            .filter { it.mimeType.contains("audio") }
-            .maxByOrNull { it.bitrate }
-            ?.url
     }
 
     fun parseSyncedLyrics(syncedLyrics: String): List<SyncedLyricLine> {
