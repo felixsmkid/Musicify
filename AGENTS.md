@@ -2,30 +2,31 @@
 
 ## Cursor Cloud specific instructions
 
-This is **Musicify**, an Android Kotlin app (music streaming via Piped API + LRCLIB lyrics). Package: `com.musicify.app`.
+This repository is **Musicify** — a free, ad-free Android music streaming app built with Kotlin + Jetpack Compose.
 
-### Environment
+### Environment Requirements
+- **Java 17+** (JDK 21 available at `/usr/lib/jvm/java-21-openjdk-amd64`)
+- **Android SDK** at `/opt/android-sdk` (platform 35, build-tools 35.0.0)
+- `local.properties` must contain `sdk.dir=/opt/android-sdk`
 
-- **Java**: OpenJDK 21 at `/usr/lib/jvm/java-21-openjdk-amd64`
-- **Android SDK**: `/opt/android-sdk` (platform 35, build-tools 35.0.0)
-- **Gradle**: 8.11.1 (via wrapper `./gradlew`)
-- Environment variables `JAVA_HOME` and `ANDROID_HOME` must be set (added to `~/.bashrc`).
-- `local.properties` has `sdk.dir=/opt/android-sdk`.
+### Common Commands
+| Action | Command |
+|--------|---------|
+| Build debug APK | `./gradlew assembleDebug` |
+| Build release APK | `./gradlew assembleRelease` |
+| Run lint | `./gradlew lintDebug` |
+| Run unit tests | `./gradlew testDebugUnitTest` |
+| Clean build | `./gradlew clean` |
 
-### Build / Lint / Test
+### Architecture Notes
+- **Music source**: Piped API (YouTube Music proxy) — no API key required
+- **Lyrics source**: LRCLIB — completely free, no auth needed
+- **API config**: `data/api/ApiConfig.kt` has base URLs; `data/internal/conf/ServiceRegistry.kt` has Base64-encoded fallback endpoints
+- **DI**: Hilt modules in `data/di/AppModule.kt`
+- **Media playback**: Media3 `MusicService` in `player/` package
 
-```bash
-export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
-export ANDROID_HOME=/opt/android-sdk
-
-./gradlew assembleDebug        # Build debug APK
-./gradlew lintDebug            # Run lint
-./gradlew testDebugUnitTest    # Run unit tests
-```
-
-### Notes
-
-- This is an Android-only project; there is no web frontend or backend server to start.
-- The "hello world" for this app is a successful `assembleDebug` producing an APK (no emulator available in cloud).
-- Kotlin compile warnings exist for deprecated Material Icons (`PlaylistPlay`, `VolumeUp`) — use `AutoMirrored` variants if updating those screens.
-- No secrets or API keys are required; Piped API and LRCLIB are public/unauthenticated.
+### Gotchas
+- The Gradle wrapper is committed; use `./gradlew` directly (no need to install Gradle separately)
+- `ANDROID_HOME` or `sdk.dir` in `local.properties` must be set before builds
+- The project uses KSP (not KAPT) for annotation processing (Hilt, Room)
+- GitHub Actions workflows use `android-actions/setup-android@v3` — no manual SDK setup needed in CI
