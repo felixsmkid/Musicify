@@ -74,7 +74,7 @@ fun MusicifyNavHost(playerManager: PlayerManager) {
             )
         }
         else -> {
-            MainApp(playerManager = playerManager, onProfileClick = { showAuth = true })
+            MainApp(playerManager = playerManager)
         }
     }
 }
@@ -136,7 +136,7 @@ fun MainApp(playerManager: PlayerManager, onProfileClick: () -> Unit = {}) {
             startDestination = Screen.Home.route,
             modifier = Modifier.padding(paddingValues)
         ) {
-            composable(Screen.Home.route) { HomeScreen(playerManager = playerManager, onProfileClick = onProfileClick) }
+            composable(Screen.Home.route) { HomeScreen(playerManager = playerManager, onProfileClick = { navController.navigate(Screen.Settings.route) { launchSingleTop = true } }) }
             composable(Screen.Search.route) { SearchScreen(playerManager = playerManager) }
             composable(Screen.Library.route) { LibraryScreen() }
             composable(Screen.Settings.route) { SettingsScreen() }
