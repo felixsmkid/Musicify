@@ -1,94 +1,61 @@
-# 📋 Changelog
+# Changelog
 
-All notable changes to **Musicify** will be documented in this file.
-
-Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
-
----
-
-## [v0.2.0-beta] — 2024-01-02
-
-### 🔧 Bug Fixing — BETA 0.2
-
-**Fix:** APK tidak bisa di-install ("package appears to be invalid")
-
-### 🐛 Fixed
-- **APK Signing** — APK sekarang sudah di-sign dengan release keystore, sehingga bisa di-install langsung tanpa error "package appears to be invalid"
-- **APK Size** — Disabled R8 minification yang menyebabkan APK terlalu kecil (2MB) dan corrupt. APK sekarang full-size (~22MB) dengan semua resources intact
-- **Release Tag** — Release sekarang muncul sebagai "Latest" bukan "Pre-release"
-
-### ⚙️ Changed
-- Disabled `isMinifyEnabled` dan `isShrinkResources` pada release build (akan di-enable kembali setelah ProGuard rules proper)
-- Added signing config untuk release build
-- Version bump ke `0.2.0-beta` (versionCode 2)
+All notable changes to this project will be documented in this file.
+See [Conventional Commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 ---
 
-## [v0.1.0-beta] — 2024-01-01
+## [0.2.0-beta] - 2024-01-02
 
-### 🎉 BETA 0.1 — Initial Beta Release
+### Bug Fixes
 
-First public beta of Musicify! A completely free, ad-free music streaming app for Android.
+- **signing**: APK now signed with release keystore; resolves `INSTALL_PARSE_FAILED_NO_CERTIFICATES` and "package appears to be invalid" on all devices
+- **build**: disabled R8 full-mode minification that was stripping required Compose runtime classes, causing a 2MB broken APK instead of the expected ~15MB
+- **api**: added instance fallback list (`kavin.rocks`, `libre`, `piped.yt`, `adminforge.de`) for Piped API resilience
+- **home**: fixed infinite loading spinner when trending endpoint returns non-stream items — now filters by `type == "stream"`
 
-### ✅ Added
+### New Features
 
-**Core Features**
-- 🎶 Music streaming via Piped API (YouTube Music proxy)
-- 📝 Real-time synchronized lyrics (LRCLIB integration)
-- 🔍 Search songs, artists, and albums with debounce
-- 📈 Trending music discovery
-- 📚 Library management (Liked Songs, History, Playlists)
-- ▶️ Background playback with media notification
-- 🔀 Shuffle, repeat, and queue management
+- **onboarding**: added 3-page swipeable welcome flow shown on first launch (HorizontalPager with animated page indicators)
+- **auth**: added Google Sign-In screen using Credential Manager API for YouTube Music library sync (requires `WEB_CLIENT_ID` configuration)
+- **home/ui**: completely redesigned home screen — gradient header with contextual greeting, horizontal trending carousel with play overlay, vertical "Quick Picks" list with duration labels
+- **error-state**: home screen now shows actionable retry button on API failure instead of blank screen
 
-**UI & Design**
-- 🎨 Material 3 / Material You design system
-- 🌙 Dark, Light, and System theme support
-- 🎭 Dynamic colors from album artwork
-- ✨ Smooth animations and transitions
-- 📱 Edge-to-edge display
+### Changes
 
-**Player**
-- 🎵 Full-screen Now Playing with album art
-- 📝 Animated synced lyrics overlay
-- ⏩ Skip silence option
-- 🔊 Audio normalization
-- 🎚️ Audio quality selection (up to 320kbps)
+- version bump to `0.2.0-beta` (versionCode 2)
+- `isMinifyEnabled` set to `false` in release build until ProGuard consumer rules are properly configured per-library
+- navigation flow updated: `Onboarding → Auth → Main`
 
-**Technical**
-- 🏗️ Kotlin + Jetpack Compose architecture
-- 🎧 Media3 (ExoPlayer) audio engine
-- 💉 Hilt dependency injection (KSP)
-- 💾 Room database + DataStore preferences
-- 🌐 Retrofit + OkHttp networking
-- 🖼️ Coil image loading
-- ⚙️ GitHub Actions CI/CD (build, lint, test, release)
+### Known Issues
 
-### ⚠️ Known Issues
-- ~~APK unsigned — tidak bisa di-install~~ (Fixed in v0.2.0-beta)
-- ~~APK terlalu kecil karena aggressive minification~~ (Fixed in v0.2.0-beta)
-- Playlist sync not yet available
-- Some tracks may not have synced lyrics
-- Download/offline feature coming in next release
+- Google Sign-In requires a valid `WEB_CLIENT_ID` from Google Cloud Console; currently shows UI only
+- playlist sync with YouTube Music account is not yet implemented
+- offline/download feature not available in this release
+- lyrics display requires active playback session (no standalone lyrics search yet)
 
 ---
 
-## Release Types
+## [0.1.0-beta] - 2024-01-01
 
-| Emoji | Type | Tag Format | Description |
-|-------|------|-----------|-------------|
-| 🧪 | Beta | `v0.x.x-beta` | Testing phase, may have bugs |
-| 🎉 | New Release | `v1.0.0` | First stable, fully tested |
-| ⬆️ | New Update | `v1.x.0` | New features added |
-| 🔧 | Bug Fixing | `v1.x.x` | Specific fixes (listed in detail) |
+### Initial Release
 
----
+First public beta. Core streaming architecture with Piped API backend and LRCLIB lyrics integration.
 
-## Upcoming (Next Release)
+### Features
 
-- [ ] Offline download support
-- [ ] Playlist import/export
-- [ ] Equalizer UI
-- [ ] Artist & album detail pages
-- [ ] Sleep timer with fade out
-- [ ] Proper ProGuard rules for smaller APK
+- stream audio via Piped API (YouTube Music proxy, no authentication required)
+- real-time synced lyrics from LRCLIB (LRC format parsing with millisecond accuracy)
+- Material 3 UI with Jetpack Compose (dynamic color, dark/light/system theme)
+- Media3 ExoPlayer service with foreground notification and `MediaSession` support
+- debounced search with result type filtering (`music_songs`)
+- trending feed from configurable region
+- library scaffold (liked songs, history, playlists — local Room DB)
+- settings screen (audio quality, skip silence, normalization toggles)
+- GitHub Actions CI: `build.yml` (assemble + lint + unit test), `release.yml` (tag-triggered APK publish)
+
+### Known Issues (fixed in 0.2.0)
+
+- ~~APK unsigned — fails to install on device~~
+- ~~R8 minification produces corrupt 2MB APK~~
+- ~~home screen infinite loading when API returns mixed content types~~
