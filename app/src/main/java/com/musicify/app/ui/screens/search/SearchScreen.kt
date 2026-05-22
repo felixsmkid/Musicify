@@ -34,9 +34,8 @@ fun SearchScreen(viewModel: SearchViewModel = hiltViewModel()) {
     val focusManager = LocalFocusManager.current
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // Search input
         OutlinedTextField(
             value = uiState.query,
             onValueChange = viewModel::onQueryChange,
@@ -44,9 +43,7 @@ fun SearchScreen(viewModel: SearchViewModel = hiltViewModel()) {
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp),
             placeholder = { Text("Search songs, artists...") },
-            leadingIcon = {
-                Icon(Icons.Default.Search, contentDescription = "Search")
-            },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             trailingIcon = {
                 if (uiState.query.isNotEmpty()) {
                     IconButton(onClick = { viewModel.onQueryChange("") }) {
@@ -65,7 +62,7 @@ fun SearchScreen(viewModel: SearchViewModel = hiltViewModel()) {
             ),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
                 focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                 unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
             )
@@ -76,22 +73,15 @@ fun SearchScreen(viewModel: SearchViewModel = hiltViewModel()) {
         when {
             uiState.isLoading -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(
-                        strokeWidth = 3.dp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    CircularProgressIndicator(strokeWidth = 3.dp)
                 }
             }
-            uiState.results.isEmpty() && !uiState.hasSearched -> {
+            !uiState.hasSearched && uiState.results.isEmpty() -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -99,22 +89,20 @@ fun SearchScreen(viewModel: SearchViewModel = hiltViewModel()) {
                             Icons.Outlined.MusicNote,
                             contentDescription = null,
                             modifier = Modifier.size(56.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            "Search for music",
+                            "Search for your favorite music",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
                     }
                 }
             }
-            uiState.results.isEmpty() && uiState.hasSearched -> {
+            uiState.hasSearched && uiState.results.isEmpty() -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -125,23 +113,50 @@ fun SearchScreen(viewModel: SearchViewModel = hiltViewModel()) {
                 }
             }
             else -> {
-                LazyColumn(
-                    contentPadding = PaddingValues(bottom = 100.dp)
-                ) {
+                LazyColumn(contentPadding = PaddingValues(bottom = 100.dp)) {
                     items(uiState.results) { item ->
-                        SearchResultItem(
-                            title = item.title,
-                            artist = item.uploaderName,
-                            thumbnailUrl = item.thumbnail,
-                            type = if (item.title.contains("video", ignoreCase = true) ||
-                                item.title.contains("MV", ignoreCase = false) ||
-                                item.title.contains("Official Video", ignoreCase = true))
-                                "Video" else "Song",
-                            onClick = {
-                                val videoId = viewModel.onTrackClick(item)
-                                Toast.makeText(context, "Playing: ${item.title}", Toast.LENGTH_SHORT).show()
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    Toast.makeText(context, "▶ ${item.title}", Toast.LENGTH_SHORT).show()
+                                }
+                                .padding(horizontal = 20.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AsyncImage(
+                                model = item.thumbnail,
+                                contentDescription = item.title,
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(RoundedCornerShape(10.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                            Spacer(modifier = Modifier.width(14.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = item.title,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Text(
+                                    text = item.uploaderName,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
-                        )
+                            Text(
+                                text = formatDuration(item.duration),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
                     }
                 }
             }
@@ -149,59 +164,9 @@ fun SearchScreen(viewModel: SearchViewModel = hiltViewModel()) {
     }
 }
 
-@Composable
-fun SearchResultItem(
-    title: String,
-    artist: String,
-    thumbnailUrl: String,
-    type: String,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        AsyncImage(
-            model = thumbnailUrl,
-            contentDescription = title,
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(10.dp)),
-            contentScale = ContentScale.Crop
-        )
-        Spacer(modifier = Modifier.width(14.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Spacer(modifier = Modifier.height(3.dp))
-            Text(
-                text = artist,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Spacer(modifier = Modifier.width(8.dp))
-        Surface(
-            shape = RoundedCornerShape(6.dp),
-            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-        ) {
-            Text(
-                text = type,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-            )
-        }
-    }
+private fun formatDuration(seconds: Long): String {
+    if (seconds <= 0) return ""
+    val mins = seconds / 60
+    val secs = seconds % 60
+    return "%d:%02d".format(mins, secs)
 }

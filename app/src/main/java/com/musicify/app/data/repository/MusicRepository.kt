@@ -15,11 +15,19 @@ class MusicRepository @Inject constructor(
     private val pipedApi: PipedApi,
     private val lrcLibApi: LrcLibApi
 ) {
+    private val trendingQueries = listOf(
+        "top songs this week",
+        "popular music 2024",
+        "trending hits",
+        "new music friday"
+    )
+
     suspend fun searchTrending(): Result<List<TrendingItem>> = runCatching {
-        val response = innerTubeApi.search(InnerTubeClient.searchRequest("top hits 2024 popular songs"))
+        val query = trendingQueries.random()
+        val response = innerTubeApi.search(InnerTubeClient.searchRequest(query))
         val items = InnerTubeParser.parseSearchAsTrending(response)
         if (items.isEmpty()) {
-            val fallback = innerTubeApi.search(InnerTubeClient.searchRequest("trending music"))
+            val fallback = innerTubeApi.search(InnerTubeClient.searchRequest("best songs 2024"))
             InnerTubeParser.parseSearchAsTrending(fallback)
         } else items
     }

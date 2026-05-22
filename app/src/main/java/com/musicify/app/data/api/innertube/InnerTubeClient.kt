@@ -5,6 +5,7 @@ import com.google.gson.JsonObject
 object InnerTubeClient {
     private const val CLIENT_NAME = "WEB_REMIX"
     private const val CLIENT_VERSION = "1.20241120.01.00"
+    private const val SONGS_FILTER = "EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D"
 
     fun createContext(hl: String = "en", gl: String = "US"): JsonObject {
         return JsonObject().apply {
@@ -19,22 +20,12 @@ object InnerTubeClient {
         }
     }
 
-    fun browseChartsRequest(gl: String = "US"): JsonObject {
-        return createContext(gl = gl).apply {
-            addProperty("browseId", "FEmusic_charts")
-        }
-    }
-
-    fun browseHomeRequest(): JsonObject {
-        return createContext().apply {
-            addProperty("browseId", "FEmusic_home")
-        }
-    }
-
-    fun searchRequest(query: String): JsonObject {
+    fun searchRequest(query: String, filterSongs: Boolean = true): JsonObject {
         return createContext().apply {
             addProperty("query", query)
-            add("params", null)
+            if (filterSongs) {
+                addProperty("params", SONGS_FILTER)
+            }
         }
     }
 
